@@ -778,6 +778,7 @@ static NSString *const iVersionMacAppStoreURLFormat = @"macappstore://itunes.app
             BOOL newerVersionAvailable = NO;
             NSString *latestVersion = nil;
             NSDictionary *versions = nil;
+			NSString* minimumOsVersion = nil;
             
             //first check iTunes
             NSString *iTunesServiceURL = [NSString stringWithFormat:iVersionAppLookupURLFormat, self.appStoreCountry];
@@ -829,12 +830,9 @@ static NSString *const iVersionMacAppStoreURLFormat = @"macappstore://itunes.app
                             //get version details
                             NSString *releaseNotes = [self valueForKey:@"releaseNotes" inJSON:json];
                             latestVersion = [self valueForKey:@"version" inJSON:json];
+                            minimumOsVersion = [self valueForKey:@"minimumOsVersion" inJSON:json];
                             
-                            if (latestVersion)
-                            {
-                                versions = @{latestVersion: releaseNotes ?: @""};
-                            }
-                            
+							                     
                             //get app id
                             if (!self.appStoreID)
                             {
@@ -847,9 +845,18 @@ static NSString *const iVersionMacAppStoreURLFormat = @"macappstore://itunes.app
                                 }
                             }
                             
+							//
+							NSString* currentOsVersion = [[UIDevice currentDevice] systemVersion];
+							BOOL osSupported = [currentOsVersion compareVersion:minimumOsVersion] == NSOrderedDescending || [currentOsVersion compareVersion:minimumOsVersion] == NSOrderedSame;
+							
                             //check for new version
-                            newerVersionAvailable = ([latestVersion compareVersion:self.applicationVersion] == NSOrderedDescending);
-                            if (self.verboseLogging)
+                            newerVersionAvailable = osSupported && ([latestVersion compareVersion:self.applicationVersion] == NSOrderedDescending);
+							if (newerVersionAvailable && latestVersion)
+                            {
+                                versions = @{latestVersion: releaseNotes ?: @""};
+                            }
+
+							if (self.verboseLogging)
                             {
                                 if (newerVersionAvailable)
                                 {
